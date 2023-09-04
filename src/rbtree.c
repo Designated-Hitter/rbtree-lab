@@ -86,8 +86,8 @@ void left_rotation(rbtree *t, node_t *x) {
     x->parent->right = y;
   } 
 
-  y->left = x;
-  x->parent = y;
+  y -> left = x;
+  x -> parent = y;
 }
 
 void rbtree_insert_fixup(rbtree *t, node_t *z) {
@@ -109,15 +109,81 @@ void rbtree_insert_fixup(rbtree *t, node_t *z) {
 
       //case.2 삽입된 노드 z의 삼촌 y가 black이며 z가 오른쪽 자식인 경우 (triangle 모양)
       else {
-        if 
+        if (z == z -> parent -> right) {
+          z = z -> parent;
+          left_rotation(t, z);
+        } //triangle 모양일때는 left rotation과 (아래에서)right rotation 을 실시한다.(2회전)
+
+        //case.3 삽입된 노드 z의 삼촌 y가 black이며 z가 왼쪽 자식인 경우 (linear 모양)
+        z -> parent -> color = RBTREE_BLACK;
+        z -> parent -> parent -> color = RBTREE_RED;
+        right_rotation(t, z -> parent -> parent);
+        //linear 모양일때는 right_rotation만 실시한다. (1회전)
+      }
+    } else { //z의 부모가 조부모의 오른쪽 서브 트리일 경우
+      y = z -> parent -> parent ->left; //삼촌은 왼쪽에 있다.
+
+      //case.4 삽입된 노드 z의 삼촌 y가 red인 경우 (parent 도 red, uncle도 red)
+      if (y->color == RBTREE_RED) {
+        z->parent->color = RBTREE_BLACK;
+        y->color = RBTREE_BLACK;
+        z->parent->parent->color = RBTREE_RED;
+        z = z->parent->parent;
+      }
+
+      //case.5 z의 삼촌 y가 black이며 z가 왼쪽 자식인 경우 (triangle 모양)
+      else {
+        if (z == z -> parent -> left) {
+          z = z -> parent;
+          right_rotation(t, z);
+        }
+        //case.6: z의 삼촌 y가 black이며 z가 오른쪽 자식인 경우 (linear 모양)
+        z -> parent -> color = RBTREE_BLACK;
+        z -> parent -> parent -> color = RBTREE_RED;
+        left_rotation(t, z -> parent -> parent);
       }
     }
   }
+  t -> root -> color = RBTREE_BLACK; //root는 black
 }
 
+
 node_t *rbtree_insert(rbtree *t, const key_t key) {
-  // TODO: implement insert
-  return t->root;
+  node_t *y = t -> nil;
+  node_t *x = t -> root;
+  node_t *z = (node_t*) calloc(1, sizeof(node_t)); //z를 동적할당
+
+  z -> key = key; //z에 key 대입
+
+  while (x != t -> nil) {
+    
+    y = x;
+
+    if (z -> key < x -> key) { //z의 key가 x의 key 보다 작다면
+      x = x -> left; //왼쪽으로
+    } else {
+      x = x -> right;
+    }
+  }
+
+  z -> parent = y;
+
+  if (y == t -> nil) { //z의 부모가 없다면 root다.
+    t->root = z;
+  } else if (z -> key < y -> key) {
+    y -> left = z;
+  } else {
+    y -> right = z;
+  }
+
+  z -> left = t -> nil;
+  z -> right = t -> nil; //z의 자식들이 모두 NIL (z는 가장 아래)
+  z -> color = RBTREE_RED;
+
+  rbtree_insert_fixup(t, z);
+
+  return t -> root;
+
 }
 
 node_t *rbtree_find(const rbtree *t, const key_t key) {
